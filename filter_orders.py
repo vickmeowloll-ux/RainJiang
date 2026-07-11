@@ -65,21 +65,34 @@ def notify_filtered(order: dict, category: str) -> bool:
     return send_telegram(msg)
 
 
-def fetch_history(session, keyword, min_price):
-    try:
-        resp = session.get(HISTORY_URL, params={
-            "grabid": CONFIG["autoab_grabid"],
-            "day": "today",
-            "keyword": keyword,
-            "min_price": min_price,
-            "size": 100,
-        }, timeout=15)
-        data = resp.json()
-        if data.get("code") == 1:
-            return data["data"].get("list", [])
-    except Exception as e:
-        print(f"[x] 查询失败 ({keyword}): {e}")
-    return []
+def fetch_all_history(session, keyword, min_price):
+    """遍历所有页，返回全部匹配订单"""
+    all_orders = []
+    page = 1
+    total_pages = 1
+    while page <= total_pages:
+        try:
+            resp = session.get(HISTORY_URL, params={
+                "grabid": CONFIG["autoab_grabid"],
+                "day": "today",
+                "keyword": keyword,
+                "min_price": min_price,
+                "size": 100,
+                "page": page,
+            }, timeout=15)
+            data = resp.json()
+            if data.get("code") != 1:
+                break
+            orders = data["data"].get("list", [])
+            all_orders.extend(orders)
+            # 更新总页数
+            total_pages = data["data"].get("pagination", {}).get("total_page", 1)
+            page += 1
+            time.sleep(0.3)
+        except Exception as e:
+            print(f"[x] 查询失败 ({keyword} 第{page}页): {e}")
+            break
+    return all_orders
 
 
 def login_and_get_session() -> requests.Session:
@@ -160,7 +173,7 @@ def main():
     new_set = set(notified)
 
     # JustGrab >= 150
-    for o in fetch_history(session, "JustGrab", 150):
+    for o in fetch_all_history(session, "JustGrab", 150):
         if o["order_no"] not in notified:
             notify_filtered(o, "JustGrab")
             new_set.add(o["order_no"])
@@ -168,7 +181,7 @@ def main():
             time.sleep(0.3)
 
     # Plus >= 150
-    for o in fetch_history(session, "Plus", 150):
+    for o in fetch_all_history(session, "Plus", 150):
         if o["order_no"] not in notified and "Advance Standard" not in o["order_title"]:
             notify_filtered(o, "Plus")
             new_set.add(o["order_no"])
@@ -176,7 +189,7 @@ def main():
             time.sleep(0.3)
 
     # 6 Seats >= 150
-    for o in fetch_history(session, "6 seats", 150):
+    for o in fetch_all_history(session, "6 seats", 150):
         if o["order_no"] not in notified:
             notify_filtered(o, "6 Seats")
             new_set.add(o["order_no"])
@@ -184,7 +197,7 @@ def main():
             time.sleep(0.3)
 
     # Advance Standard 去/回机场（全部金额）
-    for o in fetch_history(session, "KLIA", 0):
+    for o in fetch_all_history(session, "KLIA", 0):
         if o["order_no"] not in notified:
             title = o["order_title"]
             if "Advance Standard" in title:
