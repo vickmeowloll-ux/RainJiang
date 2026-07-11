@@ -123,7 +123,7 @@ def try_saved_session(session: requests.Session) -> bool:
 
 
 def load_state() -> dict:
-    default = {"notified_ids": [], "phpsessid": None}
+    default = {"notified_ids": [], "notified_high": [], "phpsessid": None, "last_date": None}
     if STATE_FILE.exists():
         try:
             return json.loads(STATE_FILE.read_text(encoding="utf-8"))
@@ -147,6 +147,12 @@ def main():
         return
 
     state = load_state()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    # 如果换天了，清空已通知记录
+    if state.get("last_date") != today_str:
+        print(f"[*] 换天了（{state.get('last_date')} → {today_str}），清空记录")
+        state["notified_high"] = []
+        state["last_date"] = today_str
     notified = set(state.get("notified_high", []))
     saved_phpsessid = state.get("phpsessid")
     print(f"[*] 已通知数: {len(notified)}")
