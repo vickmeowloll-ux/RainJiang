@@ -61,7 +61,7 @@ def notify_filtered(order: dict, category: str) -> bool:
     amount = order.get("order_amount", "?")
     pickup_time = order.get("order_time", "?")
 
-    msg = f"💰 <b>{amount} 马币</b> [{category}]\n🕐 {pickup_time}\n📋 {title}"
+    msg = f"💰 <b>{amount} 马币</b>\n🕐 {pickup_time}\n📋 {title}"
     return send_telegram(msg)
 
 
