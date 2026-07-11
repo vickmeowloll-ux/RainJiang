@@ -182,7 +182,7 @@ def main():
 
     # Plus >= 150
     for o in fetch_all_history(session, "Plus", 150):
-        if o["order_no"] not in notified and "Advance Standard" not in o["order_title"]:
+        if o["order_no"] not in notified:
             notify_filtered(o, "Plus")
             new_set.add(o["order_no"])
             total_new += 1
