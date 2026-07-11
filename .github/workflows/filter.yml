@@ -1,0 +1,26 @@
+name: autoab 订单过滤
+
+on:
+  schedule:
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+
+jobs:
+  filter-orders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 安装依赖
+        run: pip install requests
+      - name: 过滤并推送
+        env:
+          AUTOAB_USERNAME: ${{ secrets.AUTOAB_USERNAME }}
+          AUTOAB_PASSWORD: ${{ secrets.AUTOAB_PASSWORD }}
+          AUTOAB_GRABID: ${{ secrets.AUTOAB_GRABID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python filter_orders.py
